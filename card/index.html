@@ -1,0 +1,852 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Custom ID Card Generator</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&family=Montserrat:wght@500;800&family=Great+Vibes&display=swap" rel="stylesheet">
+    <style>
+        /* General Reset and Base Styles */
+        :root {
+            --color-primary: #8a2be2; /* BlueViolet / Deep Purple */
+            --color-primary-light: #9955ea;
+            --color-secondary: #ff69b4; /* Hot Pink Accent */
+            --color-dark-bg: #1a1a2e; /* Dark theme background */
+            --color-card-bg: #272744; /* Slightly lighter card background */
+            --color-text-light: #e0e0f0;
+            --color-text-dark: #333;
+            --font-main: 'Roboto', sans-serif;
+        }
+
+        body {
+            font-family: var(--font-main);
+            background-color: var(--color-dark-bg);
+            color: var(--color-text-light);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            gap: 30px;
+            transition: background-color 0.3s ease;
+        }
+
+        /* Layout for Controls and Preview */
+        #container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 30px;
+            width: 95%;
+            max-width: 1400px;
+            padding: 20px;
+        }
+
+        #controls {
+            flex: 1 1 400px; /* Controls Panel */
+            background-color: var(--color-card-bg);
+            padding: 25px;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), 0 0 50px rgba(138, 43, 226, 0.3);
+            animation: fadeIn 0.8s ease-out;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        #preview-area {
+            flex: 2 1 600px; /* Preview Area */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 400px;
+            padding: 20px;
+            background-color: rgba(0, 0, 0, 0.2);
+            border-radius: 16px;
+        }
+
+        h1, h2 {
+            color: var(--color-primary-light);
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        /* Control Group Styling */
+        .control-group {
+            margin-bottom: 25px;
+            padding: 15px;
+            border: 1px solid rgba(138, 43, 226, 0.4);
+            border-radius: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .control-group:hover {
+            border-color: var(--color-secondary);
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 700;
+            color: var(--color-text-light);
+        }
+
+        input[type="text"], input[type="color"], select, input[type="file"] {
+            width: 100%;
+            padding: 10px;
+            margin-top: 5px;
+            border-radius: 6px;
+            border: 1px solid var(--color-primary);
+            background-color: #333355;
+            color: var(--color-text-light);
+            box-sizing: border-box;
+            transition: border-color 0.3s ease;
+        }
+        
+        /* Specific style for readonly ID input */
+        #input-id {
+            font-size: 1.1em; 
+            font-weight: bold; 
+            background-color: #553377; 
+            border-color: var(--color-secondary);
+        }
+
+        input[type="text"]:focus, select:focus {
+            border-color: var(--color-secondary);
+            outline: none;
+            box-shadow: 0 0 8px rgba(255, 105, 180, 0.5);
+        }
+        
+        /* Range Slider Custom Styling */
+        .range-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 8px;
+        }
+        .range-container input[type="range"] {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .range-container input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: var(--color-primary-light);
+            cursor: pointer;
+            box-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
+            transition: background 0.3s ease;
+        }
+
+        .range-container input[type="range"]::-webkit-slider-thumb:hover {
+            background: var(--color-secondary);
+        }
+        
+        .range-value {
+            min-width: 40px;
+            text-align: right;
+            font-weight: bold;
+            color: var(--color-secondary);
+        }
+
+
+        /* ID Card Styling (Standard CR80 size: 3.375in x 2.125in) */
+        #id-card {
+            width: 540px; /* ~3.375 inches at 160 DPI */
+            height: 340px; /* ~2.125 inches at 160 DPI */
+            background-color: var(--color-card-bg);
+            border: 5px solid var(--color-primary);
+            border-radius: 20px;
+            box-shadow: 0 0 40px rgba(138, 43, 226, 0.5), 0 0 10px rgba(0, 0, 0, 0.8) inset;
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1.0);
+            transform-style: preserve-3d;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        #id-card:hover {
+            transform: scale(1.03) rotateY(2deg);
+        }
+        
+        .card-element {
+            position: absolute;
+            white-space: nowrap;
+            padding: 5px;
+            transition: all 0.3s ease-out;
+            cursor: default;
+            text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.6);
+            text-align: center; /* Default for center-aligned elements */
+        }
+        
+        #card-id {
+            font-size: 16px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            opacity: 0.8;
+            z-index: 10;
+        }
+        
+        /* New Element Styles */
+        #card-header {
+            font-size: 14px;
+            font-weight: 500;
+            letter-spacing: 2px;
+            color: var(--color-secondary);
+            text-transform: uppercase;
+            opacity: 0.9;
+        }
+        
+        #card-logo {
+            z-index: 15;
+            width: 35px;
+            height: 35px;
+            color: var(--color-secondary);
+        }
+
+        #card-expiry {
+            font-size: 14px;
+            font-weight: 400;
+            opacity: 0.7;
+            text-align: left;
+        }
+        
+        #card-signature {
+            font-size: 12px;
+            font-weight: 400;
+            text-align: center;
+            border-top: 1px solid rgba(255, 255, 255, 0.4);
+            padding-top: 5px;
+            opacity: 0.8;
+            width: 120px; /* Fixed width for signature area */
+        }
+
+
+        #card-template-design {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        /* Simple Template Design Elements */
+        .template-stripe {
+            position: absolute;
+            width: 100%;
+            height: 50px;
+            background: linear-gradient(90deg, var(--color-primary-light), var(--color-secondary));
+            opacity: 0.7;
+            clip-path: polygon(0 0, 100% 100%, 100% 0);
+        }
+        .template-stripe:nth-child(1) { top: 0; transform: skewY(5deg); }
+        .template-stripe:nth-child(2) { bottom: 0; height: 30px; transform: skewY(-5deg); background: linear-gradient(270deg, var(--color-primary), var(--color-secondary)); }
+
+
+        #card-name {
+            font-size: 28px;
+            font-weight: 800;
+            letter-spacing: 1px;
+            z-index: 10;
+        }
+
+        #card-team {
+            font-size: 18px;
+            font-weight: 500;
+            z-index: 10;
+            opacity: 0.9;
+        }
+
+        #card-photo-container {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            overflow: hidden;
+            border: 3px solid var(--color-secondary);
+            background-color: #333;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 11;
+        }
+
+        #card-photo {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        /* Buttons */
+        .btn {
+            display: block;
+            width: 100%;
+            padding: 12px 20px;
+            margin-top: 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+            text-transform: uppercase;
+        }
+
+        .btn-primary {
+            background-color: var(--color-primary);
+            color: var(--color-text-light);
+            box-shadow: 0 4px 15px rgba(138, 43, 226, 0.5);
+        }
+
+        .btn-primary:hover {
+            background-color: var(--color-primary-light);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(138, 43, 226, 0.7);
+        }
+
+        .btn-secondary {
+            background-color: var(--color-secondary);
+            color: var(--color-dark-bg);
+            margin-top: 15px;
+        }
+
+        .btn-secondary:hover {
+            background-color: #ff85c1;
+            transform: translateY(-2px);
+        }
+
+        /* Responsiveness */
+        @media (max-width: 1000px) {
+            body {
+                padding: 10px;
+            }
+            #container {
+                flex-direction: column;
+                align-items: center;
+                width: 100%;
+            }
+            #controls {
+                max-width: 100%;
+                overflow-y: visible;
+                max-height: none;
+            }
+            #id-card {
+                width: 90vw;
+                max-width: 540px;
+                height: 57vw;
+                max-height: 340px;
+            }
+            #preview-area {
+                width: 100%;
+                padding: 10px 0;
+            }
+        }
+        
+        /* Print Styles - Crucial for "Print-Ready Output" */
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            #id-card, #id-card * {
+                visibility: visible;
+                color: #000 !important; /* Force black text on print */
+                background-color: transparent !important; /* No background on print */
+                box-shadow: none !important;
+                border: 1px solid #000 !important; /* Print outline */
+                transform: none !important;
+                transition: none !important;
+                -webkit-print-color-adjust: exact;
+            }
+            #id-card {
+                position: absolute;
+                top: 5%;
+                left: 5%;
+                width: 3.375in; /* True ID card size */
+                height: 2.125in;
+                padding: 0.15in;
+                border-radius: 0.1in;
+                page-break-after: always;
+            }
+            .template-stripe {
+                /* Hide decorative elements for clean print */
+                display: none !important; 
+            }
+            #card-photo-container {
+                border-color: #000 !important;
+            }
+        }
+        
+        /* Utility for Text Positioning */
+        .position-controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        .position-controls > div {
+            background-color: rgba(255, 255, 255, 0.05);
+            padding: 10px;
+            border-radius: 8px;
+        }
+
+        .position-controls h3 {
+            color: var(--color-secondary);
+            margin-top: 0;
+            font-size: 1em;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 105, 180, 0.3);
+            padding-bottom: 5px;
+            margin-bottom: 10px;
+        }
+        
+    </style>
+</head>
+<body>
+
+    <div id="container">
+        <!-- Controls Panel -->
+        <div id="controls">
+            <h1>ID Card Customization</h1>
+
+            <!-- Input Group -->
+            <div class="control-group">
+                <h2>1. Text Content</h2>
+                <label for="input-name">Participant Name</label>
+                <input type="text" id="input-name" value="ALEXANDER VANCE" oninput="updatePreview()">
+
+                <label for="input-team">College / Team Name</label>
+                <input type="text" id="input-team" value="SPARKTECH UNIVERSITY" oninput="updatePreview()">
+            </div>
+
+            <!-- Photo Upload -->
+            <div class="control-group">
+                <h2>2. Participant Photo</h2>
+                <label for="input-photo">Upload Photo (Square Recommended)</label>
+                <input type="file" id="input-photo" accept="image/*" onchange="loadPhoto()">
+            </div>
+            
+            <!-- New ID Control Group -->
+            <div class="control-group">
+                <h2>3. ID Number & Dates</h2>
+                <label for="input-id">Participant ID (Auto-Generated)</label>
+                <input type="text" id="input-id" value="" readonly>
+
+                <label for="input-expiry">Expiry Date</label>
+                <input type="text" id="input-expiry" value="12 / 2026" oninput="updatePreview()" placeholder="MM / YYYY">
+
+
+                <div class="control-group position-controls" style="margin-bottom: 0;">
+                    <!-- ID Appearance -->
+                    <div>
+                        <h3>ID Appearance</h3>
+                        <label for="id-font">Font Family</label>
+                        <select id="id-font" onchange="updatePreview()">
+                            <option value="monospace">Monospace (Code)</option>
+                            <option value="'Montserrat', sans-serif">Montserrat (Bold)</option>
+                            <option value="'Roboto', sans-serif">Roboto (Clean)</option>
+                            <option value="'Great Vibes', cursive">Great Vibes (Script)</option>
+                        </select>
+
+                        <label for="id-color">Text Color</label>
+                        <input type="color" id="id-color" value="#ff69b4" oninput="updatePreview()">
+                    </div>
+                    
+                    <!-- ID Position -->
+                    <div>
+                        <h3>ID Position (X/Y)</h3>
+                        <label for="id-pos-y">Vertical Position (Top %)</label>
+                        <div class="range-container">
+                            <input type="range" id="id-pos-y" min="0" max="100" value="20" oninput="updatePreview()">
+                            <span class="range-value" id="id-pos-y-val">20%</span>
+                        </div>
+
+                        <label for="id-pos-x">Horizontal Position (Left %)</label>
+                        <div class="range-container">
+                            <input type="range" id="id-pos-x" min="0" max="100" value="90" oninput="updatePreview()">
+                            <span class="range-value" id="id-pos-x-val">90%</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Positioning and Appearance Controls (Existing Name/Team) -->
+            <div class="control-group position-controls">
+                
+                <!-- Name Controls -->
+                <div>
+                    <h3>Name Appearance</h3>
+                    <label for="name-font">Font Family</label>
+                    <select id="name-font" onchange="updatePreview()">
+                        <option value="'Montserrat', sans-serif">Montserrat (Bold)</option>
+                        <option value="'Roboto', sans-serif">Roboto (Clean)</option>
+                        <option value="'Great Vibes', cursive">Great Vibes (Script)</option>
+                        <option value="monospace">Monospace (Code)</option>
+                    </select>
+
+                    <label for="name-color">Text Color</label>
+                    <input type="color" id="name-color" value="#FFFFFF" oninput="updatePreview()">
+                    
+                    <h3>Name Position (X/Y)</h3>
+                    <label for="name-pos-y">Vertical Position (Top %)</label>
+                    <div class="range-container">
+                        <input type="range" id="name-pos-y" min="0" max="100" value="65" oninput="updatePreview()">
+                        <span class="range-value" id="name-pos-y-val">65%</span>
+                    </div>
+
+                    <label for="name-pos-x">Horizontal Position (Left %)</label>
+                    <div class="range-container">
+                        <input type="range" id="name-pos-x" min="0" max="100" value="50" oninput="updatePreview()">
+                        <span class="range-value" id="name-pos-x-val">50%</span>
+                    </div>
+                </div>
+
+                <!-- Team/College Controls -->
+                <div>
+                    <h3>Team/College Appearance</h3>
+                    <label for="team-font">Font Family</label>
+                    <select id="team-font" onchange="updatePreview()">
+                        <option value="'Roboto', sans-serif">Roboto (Clean)</option>
+                        <option value="'Montserrat', sans-serif">Montserrat (Bold)</option>
+                        <option value="'Great Vibes', cursive">Great Vibes (Script)</option>
+                        <option value="monospace">Monospace (Code)</option>
+                    </select>
+
+                    <label for="team-color">Text Color</label>
+                    <input type="color" id="team-color" value="#ff69b4" oninput="updatePreview()">
+
+                    <h3>Team Position (X/Y)</h3>
+                    <label for="team-pos-y">Vertical Position (Top %)</label>
+                    <div class="range-container">
+                        <input type="range" id="team-pos-y" min="0" max="100" value="75" oninput="updatePreview()">
+                        <span class="range-value" id="team-pos-y-val">75%</span>
+                    </div>
+
+                    <label for="team-pos-x">Horizontal Position (Left %)</label>
+                    <div class="range-container">
+                        <input type="range" id="team-pos-x" min="0" max="100" value="50" oninput="updatePreview()">
+                        <span class="range-value" id="team-pos-x-val">50%</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Other Controls -->
+            <div class="control-group">
+                <h2>4. Other Customization</h2>
+                <div class="position-controls">
+                    <!-- Expiry Date Position -->
+                    <div>
+                        <h3>Expiry Position (X/Y)</h3>
+                        <label for="expiry-pos-y">Vertical Position (Top %)</label>
+                        <div class="range-container">
+                            <input type="range" id="expiry-pos-y" min="0" max="100" value="88" oninput="updatePreview()">
+                            <span class="range-value" id="expiry-pos-y-val">88%</span>
+                        </div>
+
+                        <label for="expiry-pos-x">Horizontal Position (Left %)</label>
+                        <div class="range-container">
+                            <input type="range" id="expiry-pos-x" min="0" max="100" value="25" oninput="updatePreview()">
+                            <span class="range-value" id="expiry-pos-x-val">25%</span>
+                        </div>
+                    </div>
+                    <!-- Signature Position (Fixed for simplicity) -->
+                    <div>
+                        <h3>Signature Position</h3>
+                         <p style="font-size: 0.9em; margin: 0; color: #ccc;">Position is fixed to bottom-right for design stability.</p>
+                         <div style="height: 50px;"></div> <!-- Spacer -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Print Button -->
+            <button class="btn btn-primary" onclick="printCard()">
+                Generate Print-Ready Output
+            </button>
+            <p style="font-size: 0.9em; text-align: center; color: var(--color-secondary); margin-top: 10px;">
+                (Opens browser print dialog)
+            </p>
+
+        </div>
+
+        <!-- Live Preview Area -->
+        <div id="preview-area">
+            <div id="id-card">
+                <!-- Template Design Elements -->
+                <div id="card-template-design">
+                    <div class="template-stripe"></div>
+                    <div class="template-stripe"></div>
+                </div>
+                
+                <!-- NEW: Header Title -->
+                <div id="card-header" class="card-element">OFFICIAL PARTICIPANT CARD</div>
+
+                <!-- NEW: Logo (Simple SVG Chip/Circuit Icon) -->
+                <div id="card-logo" class="card-element">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6">
+                        <rect x="2" y="2" width="20" height="20" rx="2" ry="2"></rect>
+                        <path d="M7 7h.01"></path>
+                        <path d="M12 12h.01"></path>
+                        <path d="M17 17h.01"></path>
+                        <path d="M7 17h.01"></path>
+                        <path d="M17 7h.01"></path>
+                        <path d="M7 12h.01"></path>
+                        <path d="M12 7h.01"></path>
+                        <path d="M17 12h.01"></path>
+                        <path d="M12 17h.01"></path>
+                    </svg>
+                </div>
+
+                <!-- Customizable Elements -->
+                <div id="card-photo-container" class="card-element">
+                    <img id="card-photo" src="https://placehold.co/100x100/9955ea/ffffff?text=PHOTO" alt="Participant Photo">
+                </div>
+                
+                <div id="card-name" class="card-element">ALEXANDER VANCE</div>
+                
+                <div id="card-team" class="card-element">SPARKTECH UNIVERSITY</div>
+
+                <div id="card-id" class="card-element">ID: VCE123</div>
+                
+                <!-- NEW: Expiry Date -->
+                <div id="card-expiry" class="card-element">VALID UNTIL: 12 / 2026</div>
+
+                <!-- NEW: Signature Line -->
+                <div id="card-signature" class="card-element">
+                    Signature of Participant
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables to maintain the random part of the ID, preventing it from flashing 
+        // every time a slider is moved.
+        let currentRandomIdPart = ''; 
+        let lastProcessedName = '';
+        
+        // Default positions for new elements
+        const DEFAULT_LOGO_POS_Y = 20;
+        const DEFAULT_LOGO_POS_X = 10;
+        const DEFAULT_HEADER_POS_Y = 8;
+        const DEFAULT_HEADER_POS_X = 50;
+        const DEFAULT_SIGNATURE_POS_Y = 88;
+        const DEFAULT_SIGNATURE_POS_X = 75;
+
+
+        /**
+         * Generates a 6-character unique ID based on the participant's name.
+         * Format: XXX### (Last 3 letters of name + stable 3 random digits)
+         * @param {string} name - The participant's full name.
+         * @returns {string} The generated ID string.
+         */
+        function generateStableUniqueId(name) {
+            // 1. Check if the name has changed to decide if a new random part is needed
+            if (name !== lastProcessedName) {
+                // Generate a new 3-digit random number (000 to 999)
+                currentRandomIdPart = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+                lastProcessedName = name;
+            }
+            
+            // 2. Get last 3 letters of the name
+            // Remove non-alphabetic characters and convert to uppercase
+            const cleanedName = name.replace(/[^a-zA-Z]/g, '').toUpperCase();
+            let namePart = '';
+
+            if (cleanedName.length >= 3) {
+                // Take the last 3 characters
+                namePart = cleanedName.slice(-3);
+            } else if (cleanedName.length > 0) {
+                // If less than 3, pad with 'X' to ensure 3 chars
+                namePart = cleanedName.padEnd(3, 'X').slice(-3); 
+            } else {
+                namePart = 'XYZ'; // Fallback if name is empty
+            }
+
+            return `${namePart}${currentRandomIdPart}`;
+        }
+        
+        // Set initial values and ensure ranges update their display values
+        document.addEventListener('DOMContentLoaded', () => {
+            // Initialize event listeners for range value display
+            const ranges = [
+                'name-pos-y', 'name-pos-x', 
+                'team-pos-y', 'team-pos-x',
+                'id-pos-y', 'id-pos-x',
+                'expiry-pos-y', 'expiry-pos-x', // ADDED: New Expiry ranges
+            ];
+            
+            ranges.forEach(id => {
+                const rangeInput = document.getElementById(id);
+                const valueSpan = document.getElementById(id + '-val');
+                
+                // Function to sync range input and span value
+                const syncValue = () => {
+                    valueSpan.textContent = rangeInput.value + '%';
+                };
+
+                // Add event listener to update span on change
+                if (rangeInput && valueSpan) {
+                     rangeInput.addEventListener('input', syncValue);
+                     // Initial sync
+                     syncValue();
+                }
+            });
+            
+            // Initial call to set up the card based on default inputs
+            updatePreview();
+        });
+
+
+        /**
+         * Reads all control inputs and updates the ID card preview in real-time.
+         */
+        function updatePreview() {
+            // Get DOM elements for card and its contents
+            const nameEl = document.getElementById('card-name');
+            const teamEl = document.getElementById('card-team');
+            const idEl = document.getElementById('card-id');
+            const photoContainer = document.getElementById('card-photo-container');
+            const logoEl = document.getElementById('card-logo');
+            const headerEl = document.getElementById('card-header');
+            const expiryEl = document.getElementById('card-expiry');
+            const signatureEl = document.getElementById('card-signature');
+
+
+            // --- 1. Text Content & ID Generation Update ---
+            const participantName = document.getElementById('input-name').value;
+            nameEl.textContent = participantName || 'NAME';
+            teamEl.textContent = document.getElementById('input-team').value || 'COLLEGE / TEAM';
+            
+            const generatedId = generateStableUniqueId(participantName);
+            document.getElementById('input-id').value = generatedId;
+            idEl.textContent = `ID: ${generatedId}`;
+            
+            // NEW: Expiry Date Update
+            const expiryDate = document.getElementById('input-expiry').value;
+            expiryEl.textContent = `VALID UNTIL: ${expiryDate || 'N/A'}`;
+
+
+            // --- 2. Positioning Static/New Elements ---
+            
+            // Logo (Top Left)
+            logoEl.style.top = `${DEFAULT_LOGO_POS_Y}%`;
+            logoEl.style.left = `${DEFAULT_LOGO_POS_X}%`;
+            logoEl.style.transform = `translate(-50%, -50%)`;
+            
+            // Header (Top Center)
+            headerEl.style.top = `${DEFAULT_HEADER_POS_Y}%`;
+            headerEl.style.left = `${DEFAULT_HEADER_POS_X}%`;
+            headerEl.style.transform = `translate(-50%, -50%)`;
+            
+            // Signature (Bottom Right)
+            signatureEl.style.top = `${DEFAULT_SIGNATURE_POS_Y}%`;
+            signatureEl.style.left = `${DEFAULT_SIGNATURE_POS_X}%`;
+            signatureEl.style.transform = `translate(-50%, -50%)`; 
+
+
+            // --- 3. Photo Position (Moved down for better fit) ---
+            photoContainer.style.top = '35%'; 
+            photoContainer.style.left = '50%';
+            photoContainer.style.transform = 'translate(-50%, -50%)'; 
+
+
+            // --- 4. ID Customization (Existing Logic) ---
+            const idPosY = document.getElementById('id-pos-y').value;
+            const idPosX = document.getElementById('id-pos-x').value;
+            const idFont = document.getElementById('id-font').value;
+            const idColor = document.getElementById('id-color').value;
+
+            idEl.style.top = `${idPosY}%`;
+            idEl.style.left = `${idPosX}%`;
+            idEl.style.transform = `translate(-50%, -50%)`;
+            idEl.style.fontFamily = idFont;
+            idEl.style.color = idColor;
+            
+            document.getElementById('id-pos-y-val').textContent = `${idPosY}%`;
+            document.getElementById('id-pos-x-val').textContent = `${idPosX}%`;
+
+
+            // --- 5. Name Customization (Existing Logic, adjusted default position) ---
+            const namePosY = document.getElementById('name-pos-y').value;
+            const namePosX = document.getElementById('name-pos-x').value;
+            const nameFont = document.getElementById('name-font').value;
+            const nameColor = document.getElementById('name-color').value;
+
+            nameEl.style.top = `${namePosY}%`;
+            nameEl.style.left = `${namePosX}%`;
+            nameEl.style.transform = `translate(-50%, -50%)`;
+            nameEl.style.fontFamily = nameFont;
+            nameEl.style.color = nameColor;
+            
+            document.getElementById('name-pos-y-val').textContent = `${namePosY}%`;
+            document.getElementById('name-pos-x-val').textContent = `${namePosX}%`;
+
+
+            // --- 6. Team/College Customization (Existing Logic, adjusted default position) ---
+            const teamPosY = document.getElementById('team-pos-y').value;
+            const teamPosX = document.getElementById('team-pos-x').value;
+            const teamFont = document.getElementById('team-font').value;
+            const teamColor = document.getElementById('team-color').value;
+            
+            teamEl.style.top = `${teamPosY}%`;
+            teamEl.style.left = `${teamPosX}%`;
+            teamEl.style.transform = `translate(-50%, -50%)`;
+            teamEl.style.fontFamily = teamFont;
+            teamEl.style.color = teamColor;
+
+            document.getElementById('team-pos-y-val').textContent = `${teamPosY}%`;
+            document.getElementById('team-pos-x-val').textContent = `${teamPosX}%`;
+
+            
+            // --- 7. Expiry Date Customization (NEW) ---
+            const expiryPosY = document.getElementById('expiry-pos-y').value;
+            const expiryPosX = document.getElementById('expiry-pos-x').value;
+            // No font/color controls for simplicity, inherits from parent
+
+            expiryEl.style.top = `${expiryPosY}%`;
+            expiryEl.style.left = `${expiryPosX}%`;
+            expiryEl.style.transform = `translate(-50%, -50%)`;
+
+            document.getElementById('expiry-pos-y-val').textContent = `${expiryPosY}%`;
+            document.getElementById('expiry-pos-x-val').textContent = `${expiryPosX}%`;
+        }
+
+        /**
+         * Handles the participant photo upload and displays it in the card.
+         */
+        function loadPhoto() {
+            const fileInput = document.getElementById('input-photo');
+            const photoEl = document.getElementById('card-photo');
+            
+            const file = fileInput.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    photoEl.src = e.target.result;
+                };
+                reader.onerror = () => {
+                    // Placeholder on error
+                    photoEl.src = "https://placehold.co/100x100/333/fff?text=Error";
+                }
+                reader.readAsDataURL(file);
+            }
+        }
+
+        /**
+         * Triggers the browser's print function, relying on CSS @media print rules
+         * to hide controls and format the card for print size.
+         */
+        function printCard() {
+            // Trigger the browser's native print dialog
+            window.print();
+        }
+    </script>
+</body>
+</html>
